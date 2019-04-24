@@ -1,0 +1,12 @@
+#ignore these folders
+CustomData/models/
+CustomData/training_plots/
+CustomData/images/train/
+CustomData/images/val/
+CustomData/images/test/
+CustomData/images/classes/drums/images/
+CustomData/images/classes/flute/images/
+CustomData/images/classes/guitar/images/
+CustomData/images/classes/piano/images/
+CustomData/images/classes/trombone/images/
+CustomData/images/classes/violin/images/
