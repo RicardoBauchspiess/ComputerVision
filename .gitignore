@@ -1,15 +1,15 @@
 #ignore these folders
-CustomData/models/
-CustomData/training_plots/
-CustomData/images/train/
-CustomData/images/val/
-CustomData/images/test/
-CustomData/images/classes/drums/images/
-CustomData/images/classes/flute/images/
-CustomData/images/classes/guitar/images/
-CustomData/images/classes/piano/images/
-CustomData/images/classes/trombone/images/
-CustomData/images/classes/violin/images/
+Classification/CustomData/models/
+Classification/CustomData/training_plots/
+Classification/CustomData/images/train/
+Classification/CustomData/images/val/
+Classification/CustomData/images/test/
+Classification/CustomData/images/classes/drums/images/
+Classification/CustomData/images/classes/flute/images/
+Classification/CustomData/images/classes/guitar/images/
+Classification/CustomData/images/classes/piano/images/
+Classification/CustomData/images/classes/trombone/images/
+Classification/CustomData/images/classes/violin/images/
 
 
 ObjectDetection/VOCDetectionData/
