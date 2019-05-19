@@ -93,19 +93,19 @@ class DenseBlock(nn.Module):
         self.layers = layers
         self.reduction = nn.ModuleList([nn.Conv2d(input_channels+i*inner_output, inner_output,1) for i in range(layers)])
         self.conv = nn.ModuleList([nn.Conv2d(inner_output, inner_output,3,padding=1) for i in range(layers)])
-        self.norm1 = nn.ModuleList([nn.BatchNorm2d(inner_output) for i in range(layers)])
+        self.norm1 = nn.ModuleList([nn.BatchNorm2d(input_channels+i*inner_output) for i in range(layers)])
         self.norm2 = nn.ModuleList([nn.BatchNorm2d(inner_output) for i in range(layers)])
 
 
     def forward(self, x):
 
         for i in range(self.layers):
-            out = self.reduction[i](x)
-            out = self.norm1[i](out)
+            out = self.norm1[i](x)
             out = F.relu(out)
-            out = self.conv[i](out)
+            out = self.reduction[i](out)
             out = self.norm2[i](out)
             out = F.relu(out)
+            out = self.conv[i](out)
             x = torch.cat((x,out),1)
 
         return x
