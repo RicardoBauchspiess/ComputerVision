@@ -91,46 +91,52 @@ classes = ["airplane", "automobile", "bird", "cat", "deer",
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        # convolutional layer (sees 32x32x1 image tensor)
         self.conv1 = nn.Conv2d(3,16, 3, padding=1)
         self.bn0 = nn.BatchNorm2d(16)
 
-        # net with 4 scale reduction, each scale with 4 layers of bottleneck style residual block
-        # starting at a depth of 16, doubling with each scale reduction
-        self.FeatureExtractor = BottleNeckResNet(16,4,4)
+        #self.FeatureExtractor = SE_BottleNeckResNet(32,32,32,2,4,4,4)
+        #self.FeatureExtractor = BottleNeckResNet(32,2,4,4)
+        self.FeatureExtractor = DenseNet(16,8,4,1,3) 
 
-        self.classifier_0 = nn.Linear(128,512)
+        
+        self.classifier_0 = nn.Linear(64+32,512)
         self.classifier = nn.Linear(512,10)
         
         self.avgPool4 = nn.AvgPool2d(4,4)
+        self.avgPool8 = nn.AvgPool2d(8,8)
 
-        self.dropout = nn.Dropout(0.25)
-        self.dropout2 = nn.Dropout(0.5)
-        self.pool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(0.5)
         
+        '''
+        self.classifier = nn.Sequential(
+            nn.AvgPool2d(8,8),
+            nn.Linear(64+32,512),
+            nn.Dropout(0.5),
+            nn.Linear(512,10)
+            )
+        '''
 
     def forward(self, x):
-        # add sequence of convolutional and max pooling layers
         # create low level semantic representations
         x = self.bn0(F.relu(self.conv1(x)))
 
         x = self.FeatureExtractor(x)
 
-        x = self.avgPool4(x)
-        x = x.view(-1,128)
+        #x = self.classifier(x)
+        
+        x = self.avgPool8(x)
+        x = x.view(-1,64+32)
 
         # classification
         x = self.classifier_0(x)
-        x = self.dropout2(x)
+        x = self.dropout(x)
         x = self.classifier(x)
-
+        
         return x
 
 # create a complete CNN
 model = Net()
-#model.load_state_dict(torch.load('model_fashion_mnist.pt'))
-print(model)
-#model.load_state_dict(torch.load('model_cifarfullCNN46.pt'))
+
 # move tensors to GPU if CUDA is available
 if train_on_gpu:
     model.cuda()
@@ -139,15 +145,14 @@ if train_on_gpu:
 criterion = nn.CrossEntropyLoss()
 
 # specify optimizer
-optimizer = optim.SGD(model.parameters(), lr=0.1)
-scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[8,25,60,80], gamma=0.4)
+optimizer = optim.SGD(model.parameters(), lr=0.1, momentum = 0.1)
 
-# number of epochs to train the model
-n_epochs = 30
+# divide learning rate by gamma every scheduler step, 
+# scheduler steps accordingly to the validation loss decrease
+scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[20,40,60,80], gamma=0.1)
 
 valid_loss_min = np.Inf # track change in validation loss
 
-no_improvement = 0
 print("Started training...")
 
 button = 0
@@ -158,17 +163,14 @@ T_acc = []
 V_acc = []
 start = timer()
 
-class_weights= torch.ones(10, dtype=torch.float32)
-if train_on_gpu:
-    class_weights = class_weights.cuda()
+max_epochs = np.Inf  # max number of epochs before ending training 
+max_no_improvement = 5  #max successive epochs without val loss reduction before ending training
 
-#for epoch in range(1, n_epochs+1):
 epoch = 0
-while(no_improvement<15):
-    print(class_weights)
-    new_criterion = nn.CrossEntropyLoss(weight = class_weights)
+no_improvement = 0
 
-
+# keep training until it stops improving significantly or max epochs was reached
+while( (no_improvement < max_no_improvement) and (epoch < max_epochs)):
     epoch += 1
     # keep track of training and validation loss
     train_loss = 0.0
@@ -209,10 +211,7 @@ while(no_improvement<15):
         for i in range(len(correct)):
             train_correct += correct[i].item()
             train_total += 1
-    scheduler.step()
-
-    if button == 27:
-        break
+    
     T_acc.append(train_correct/train_total)
 
     print('\nTraining Accuracy (Overall): %2d%% (%2d/%2d)' % (
@@ -223,9 +222,6 @@ while(no_improvement<15):
     # validate the model #
     ######################
     model.eval()
-    class_correct = list(0. for i in range(10))
-    class_total = list(0. for i in range(10))
-
     for data, target in valid_loader:
         # move tensors to GPU if CUDA is available
         if train_on_gpu:
@@ -245,11 +241,6 @@ while(no_improvement<15):
         for i in range(len(correct)):
             val_correct += correct[i].item()
             val_total += 1
-            label = target.data[i]
-            class_correct[label] += correct[i].item()
-            class_total[label] += 1
-    for i in range(10):
-        class_weights[i] = 1 - class_correct[i]/class_total[i]
     
     V_acc.append(val_correct/val_total)
 
@@ -273,14 +264,15 @@ while(no_improvement<15):
         print('Validation loss decreased ({:.6f} --> {:.6f}).  Saving model ...'.format(
         valid_loss_min,
         valid_loss))
-        torch.save(model.state_dict(), 'models/model_cifar121.pt')
+        torch.save(model.state_dict(), 'models/model_cifar127.pt')
         valid_loss_min = valid_loss
         no_improvement = 0
     else:
         no_improvement += 1
 
-    print('Total time: ',timer()-start)
+    scheduler.step()
 
+    print('Total time: ',timer()-start)
 
 T_Loss = np.array(T_Loss)
 V_Loss = np.array(V_Loss)
@@ -288,19 +280,28 @@ T_acc = np.array(T_acc)
 V_acc = np.array(V_acc)
 
 # plot the training loss and accuracy
-N = n_epochs
+N = epoch
 N = len(V_acc)
+
 plt.style.use("ggplot")
-plt.figure()
-plt.plot(np.arange(0, N), T_Loss, label="train_loss")
-plt.plot(np.arange(0, N), V_Loss, label="val_loss")
+plt.figure(0)
 plt.plot(np.arange(0, N), T_acc, label="train_accuracy")
 plt.plot(np.arange(0, N), V_acc, label="val_accuracy")
-plt.title("Training Loss and Accuracy on Dataset")
+plt.title("Training Accuracy on Dataset")
 plt.xlabel("Epoch #")
-plt.ylabel("Loss and Accuracy")
+plt.ylabel("Accuracy")
 plt.legend(loc="lower left")
-plt.savefig("plots/LossAccPlot_cifar121.png")
+plt.savefig("plots/Plot_cifar127_Accuracy.png")
+
+plt.style.use("ggplot")
+plt.figure(1)
+plt.plot(np.arange(0, N), T_Loss, label="train_loss")
+plt.plot(np.arange(0, N), V_Loss, label="val_loss")
+plt.title("Training Loss on Dataset")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss")
+plt.legend(loc="lower left")
+plt.savefig("plots/Plot_cifar127_Loss.png")
 
 print("Started testing...")
 # track test loss
@@ -309,7 +310,7 @@ class_correct = list(0. for i in range(10))
 class_total = list(0. for i in range(10))
 
 
-model.load_state_dict(torch.load('models/model_cifar121.pt'))
+model.load_state_dict(torch.load('models/model_cifar127.pt'))
 model.eval()
 # iterate over test data
 for data, target in test_loader:
