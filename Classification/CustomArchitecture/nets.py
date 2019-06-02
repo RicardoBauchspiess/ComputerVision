@@ -41,6 +41,28 @@ class BottleNeckResNet(nn.Module):
         return x
 
 # inputs: initial_depth = first input layer depth
+#		  layers_per_scale = number os residual layers per scale
+#		  scales = number of scale, scales-1 = number of dimensions reductions
+class PreActivationResNet(nn.Module):
+    def __init__(self, initial_depth, layers_per_scale, scales,):
+        super(PreActivationResNet, self).__init__()
+
+        self.layers = layers_per_scale
+        self.scales = scales
+        self.residualblocks = nn.ModuleList([nn.ModuleList([PreActivationResidualBlock(initial_depth*(2**j)) for i in range(layers_per_scale)]) for j in range(scales)])
+        self.scaleblocks = nn.ModuleList([PreActivationReductionBlock(initial_depth*(2**j)) for i in range(1,scales)])
+
+    def forward(self, x):
+    	# apply sequence of residualblocks, then reduce scale with convolution with stride 2
+        for i in range(self.scales):
+        	for j in range(self.layers):
+        		x = self.residualblocks[i][j](x)
+        	if (i < self.scales-1):
+        		x = self.scaleblocks[i](x)
+
+        return x
+
+# inputs: initial_depth = first input layer depth
 #		  height = first input layer height
 #		  width = first input layer width
 #		  layers_per_scale = number os residual layers per scale

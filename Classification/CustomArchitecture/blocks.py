@@ -38,6 +38,46 @@ class ResidualBottleNeckBlock(nn.Module):
 
         return F.relu(out+x)
 
+
+# Residual block in bottleneck style
+# input: input depth
+# output with same shape as input
+class PreActivationResidualBlock(nn.Module):
+    def __init__(self, input_channels):
+        super(PreActivationResidualBlock, self).__init__()
+        self.bn_1 = nn.BatchNorm2d(input_channels)
+        self.conv_1 = nn.Conv2d(input_channels,input_channels,3,padding=1)
+        self.bn_2 = nn.BatchNorm2d(input_channels)
+        self.conv_2 = nn.Conv2d(input_channels,input_channels,3,padding=1)
+
+
+    def forward(self, x):
+
+        out = self.conv_1(F.relu(self.bn_1(x)))
+        out = self.conv_2(F.relu(self.bn_2(out)))
+
+        return out+x
+
+# Residual block in bottleneck style
+# input: input depth
+# output with double depth and half scale
+class PreActivationReductionBlock(nn.Module):
+    def __init__(self, input_channels):
+        super(PreActivationReductionBlock, self).__init__()
+        self.bn_1 = nn.BatchNorm2d(input_channels)
+        self.conv_1 = nn.Conv2d(input_channels,2*input_channels,3,padding=1,stride=2)
+        self.bn_2 = nn.BatchNorm2d(input_channels*2)
+        self.conv_2 = nn.Conv2d(input_channels*2,input_channels*2,3,padding=1)
+
+
+    def forward(self, x):
+
+        out = self.conv_1(F.relu(self.bn_1(x)))
+        out = self.conv_2(F.relu(self.bn_2(out)))
+
+        return out
+
+
 # Squeeze and Excitation block
 class SEblock(nn.Module):
     def __init__(self, input_channels, height, width, ratio):
