@@ -123,6 +123,10 @@ class ResNet(nn.Module):
                     layers.append(ResidualBlock(width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
             stride = 2
 
+        if preact:
+            layers.append(nn.BatchNorm2d(width))
+            layers.append(nn.ReLU(inplace=True))
+        
         layers.append(nn.AdaptiveAvgPool2d(1))
 
         self.layers = nn.Sequential(*layers)
