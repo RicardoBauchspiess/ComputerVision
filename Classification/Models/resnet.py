@@ -102,6 +102,9 @@ class ResNet(nn.Module):
                 layers.append(nn.BatchNorm2d(width))
                 layers.append(nn.ReLU(inplace=True))
                 layers.append(nn.MaxPool2(3,2,padding=1))
+
+            if bottleneck:
+                width = 4*width
         else:
             layers.append(nn.Conv2d(3,width,3,padding=1,bias=False))
             if not preact:
@@ -112,12 +115,15 @@ class ResNet(nn.Module):
         for block in blocks:
             for n in range(block):
                 if (stride == 2):
-                    layers.append(ResidualBlock(width,2*width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
                     width = 2*width
+                    layers.append(ResidualBlock(current_width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
                     stride = 1
+                    current_width = width
                 else:
                     layers.append(ResidualBlock(width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
             stride = 2
+
+        layers.append(nn.AdaptiveAvgPool2d(1))
 
         self.layers = nn.Sequential(*layers)
 
@@ -129,3 +135,15 @@ class ResNet(nn.Module):
         x = x.view(-1,self.width)
 
         return self.classifier(x)
+
+def ResNet50(classes=1000, preact=False, projection='B'):
+    return ResNet(classes=classes,blocks = [3, 4, 6, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+
+def ResNet101(classes=1000, preact=False, projection='B'):
+    return ResNet(classes=classes,blocks = [3, 4, 23, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+
+def ResNet152(classes=1000, preact=False, projection='B'):
+    return ResNet(classes=classes,blocks = [3, 8, 36, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+
+def ResNet110(classes = 10, preact=False, projection = 'B'):
+    return ResNet(classes=classes,blocks = [18,18,18], width=16, preact=preact, projection=projection, stem='cifar')
