@@ -64,13 +64,14 @@ class ResidualBlock(nn.Module):
             
 
     def forward(self, x):
-        x = self.layers0(x)
 
-        b,c,h,w = x.size()
+        x = self.layers0(x)
 
         out = self.layers(x)
         x = self.sequential(x)
-        _,c2,_,_ = x.size()
+
+        b,c,h,w = x.size()
+        _,c2,_,_ = out.size()
 
         if (c != c2):
             padding = torch.autograd.Variable(torch.FloatTensor(b, (c2-c) , w, h).fill_(0))
