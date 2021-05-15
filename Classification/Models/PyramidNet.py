@@ -96,7 +96,7 @@ class PyramidNet(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-
+        self.width = width*r
         self.classifier = nn.Linear(width*r, classes)
 
     def forward(self, x):

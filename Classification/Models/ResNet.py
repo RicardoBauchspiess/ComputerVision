@@ -132,7 +132,7 @@ class ResNet(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-
+        self.width = width
         self.classifier = nn.Linear(width, classes)
 
     def forward(self, x):
@@ -141,14 +141,32 @@ class ResNet(nn.Module):
 
         return self.classifier(x)
 
+
+# CIFAR models
+def ResNet110(classes = 10, preact=False, projection = 'B'):
+    return ResNet(classes=classes, blocks = [18,18,18], width=16, preact=preact, projection=projection, stem='cifar')
+
+def ResNet164(classes = 10, preact=False, projection = 'B'):
+    return ResNet(classes=classes, blocks = [18,18,18], width=64, bottleneck = True, preact=preact, projection=projection, stem='cifar')
+
+def ResNet1001(classes = 10, preact=True, projection = 'B'):
+    return ResNet(classes=classes, blocks = [111,111,111], width=64, bottleneck = True, preact=preact, projection=projection, stem='cifar')
+
+# ImageNet models
+def ResNet18(classes=1000, preact=False, projection='B'):
+    return ResNet(classes=classes, blocks = [2, 2, 2, 2], width=64, bottleneck=False, preact=preact, projection=projection)
+
+def ResNet34(classes=1000, preact=False, projection='B'):
+    return ResNet(classes=classes, blocks = [3, 4, 6, 3], width=64, bottleneck=False, preact=preact, projection=projection)
+
 def ResNet50(classes=1000, preact=False, projection='B'):
-    return ResNet(classes=classes,blocks = [3, 4, 6, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+    return ResNet(classes=classes, blocks = [3, 4, 6, 3], width=64, bottleneck=True, preact=preact, projection=projection)
 
 def ResNet101(classes=1000, preact=False, projection='B'):
-    return ResNet(classes=classes,blocks = [3, 4, 23, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+    return ResNet(classes=classes, blocks = [3, 4, 23, 3], width=64, bottleneck=True, preact=preact, projection=projection)
 
 def ResNet152(classes=1000, preact=False, projection='B'):
-    return ResNet(classes=classes,blocks = [3, 8, 36, 3], width=64, bottleneck=True, preact=preact, projection=projection)
+    return ResNet(classes=classes, blocks = [3, 8, 36, 3], width=64, bottleneck=True, preact=preact, projection=projection)
 
-def ResNet110(classes = 10, preact=False, projection = 'B'):
-    return ResNet(classes=classes,blocks = [18,18,18], width=16, preact=preact, projection=projection, stem='cifar')
+def ResNet200(classes=1000, preact=True, projection='B'):
+    return ResNet(classes=classes, blocks = [3, 24, 36, 3], width=64, bottleneck=True, preact=preact, projection=projection)

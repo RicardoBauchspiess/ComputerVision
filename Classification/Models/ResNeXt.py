@@ -89,7 +89,7 @@ class ResNeXt(nn.Module):
 
         self.layers = nn.Sequential(*layers)
 
-
+        self.width = width
         self.classifier = nn.Linear(width, classes)
 
     def forward(self, x):
@@ -98,14 +98,16 @@ class ResNeXt(nn.Module):
 
         return self.classifier(x)
 
+# CIFAR models
+def ResNeXt29_32_4(classes = 10, preact=False, projection = 'B'):
+    return ResNet(classes=classes, blocks = [3,3,3], width=4, cardinality = 32, in_width = 4, projection = projection, stem='cifar')
+
+# ImageNet models
 def ResNeXt50_32_4(classes=1000, preact=False, projection='B'):
-    return ResNeXt(classes=classes,blocks = [3, 4, 6, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
+    return ResNeXt(classes=classes, blocks = [3, 4, 6, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
 
 def ResNeXt101_32_4(classes=1000, preact=False, projection='B'):
-    return ResNeXt(classes=classes,blocks = [3, 4, 23, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
+    return ResNeXt(classes=classes, blocks = [3, 4, 23, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
 
 def ResNet152_32_4(classes=1000, preact=False, projection='B'):
-    return ResNeXt(classes=classes,blocks = [3, 8, 36, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
-
-def ResNeXt29_32_4(classes = 10, preact=False, projection = 'B'):
-    return ResNet(classes=classes,blocks = [3,3,3], width=4, cardinality = 32, in_width = 4, projection = projection, stem='cifar')
+    return ResNeXt(classes=classes, blocks = [3, 8, 36, 3], width=64, cardinality = 32, in_width = 4, projection=projection)
