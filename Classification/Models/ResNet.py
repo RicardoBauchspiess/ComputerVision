@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ResidualBlock(nn.Module):
-    def __init__(self, input_channels, output_channels, bottleneck = False, preact=False, in_stride = 1, projection='B'):
+    def __init__(self, input_channels, output_channels, bottleneck = False, preact=False, in_stride = 1, projection='B', dropout = 0):
         super(ResidualBlock, self).__init__()
         
         # define residual
@@ -37,6 +37,8 @@ class ResidualBlock(nn.Module):
             layers.append(nn.Conv2d(input_channels,output_channels,3, padding = 1, stride = stride1, bias = False))      
             layers.append(nn.BatchNorm2d(output_channels))
             layers.append(nn.ReLU(inplace=True))
+            if dropout > 0:
+                layers.append(nn.Dropout(dropout))
             layers.append(nn.Conv2d(output_channels,output_channels,3, padding = 1, stride = stride2, bias = False))
 
         if not preact :
@@ -85,7 +87,7 @@ class ResidualBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, classes = 10, blocks = [3,3,3], width=16, bottleneck = False, preact=False, projection='B', stem='ImageNet'):
+    def __init__(self, classes = 10, blocks = [3,3,3], width=16, bottleneck = False, preact=False, projection='B', stem='ImageNet', dropout = 0):
         super(ResNet, self).__init__()
 
         layers = []
@@ -117,11 +119,11 @@ class ResNet(nn.Module):
             for n in range(block):
                 if (stride == 2):
                     width = 2*width
-                    layers.append(ResidualBlock(current_width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
+                    layers.append(ResidualBlock(current_width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection, dropout = dropout))
                     stride = 1
                     current_width = width
                 else:
-                    layers.append(ResidualBlock(width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection))
+                    layers.append(ResidualBlock(width,width,bottleneck=bottleneck,pract=preact,in_stride=stride,projection=projection, dropout = dropout))
             stride = 2
 
         if preact:
@@ -151,6 +153,9 @@ def ResNet164(classes = 10, preact=False, projection = 'B'):
 
 def ResNet1001(classes = 10, preact=True, projection = 'B'):
     return ResNet(classes=classes, blocks = [111,111,111], width=64, bottleneck = True, preact=preact, projection=projection, stem='cifar')
+
+def WRN28_10(classes = 10, preact=True, projection = 'B', dropout = 0.3):
+    return ResNet(classes=classes, blocks = [4,4,4], width=160, bottleneck = False, preact=preact, projection=projection, stem='cifar', dropout = dropout)
 
 # ImageNet models
 def ResNet18(classes=1000, preact=False, projection='B'):
