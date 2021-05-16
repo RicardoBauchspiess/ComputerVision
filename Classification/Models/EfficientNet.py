@@ -84,7 +84,7 @@ def get_width(base_width, gain):
 # EfficientNet
 class EfficientNet(nn.Module):
     def __init__(self, classes, base_width = [32, 16, 24, 40, 80, 112, 192, 320, 1280], base_repeats = [1, 2, 2, 3, 3, 4, 1],
-    	kernels = [3, 3, 3, 5, 3, 5, 5, 3, 1], SEratio = 0.25, MBratio = 6, width_gain = 1, depth_gain = 1, dropout = 0.2 ):
+    	kernels = [3, 3, 3, 5, 3, 5, 5, 3, 1], SEratio = 0.25, MBratio = 6, width_gain = 1, depth_gain = 1, dropout = 0.2, drop_connect = 0 ):
         super(EfficientNet, self).__init__()
 
         layers = []
@@ -103,7 +103,7 @@ class EfficientNet(nn.Module):
         stride = 1
         for i in range(len(base_repeats)):
 
-        	repeat = int(math.ceil(base_repeats[i]*depth_gain))
+        	repeat = int(math.ceil(base_repeats[i]*depth_gain)) #round number of repeats
         	width = get_width(base_width[i+1],width_gain)
         	kernel = kernels[i+1]
 
@@ -112,7 +112,7 @@ class EfficientNet(nn.Module):
         		SEwidth = int(current_width*SEratio)
         		MBwidth = int(current_width*mbratio)
         	
-        		layers.append(current_width, MBwidth, SEwidth, width, kernel, in_stride = stride)
+        		layers.append(current_width, MBwidth, SEwidth, width, kernel, in_stride = stride, drop_connect = drop_connect)
         		current_width = width
         		mbratio = MBratio
         	
