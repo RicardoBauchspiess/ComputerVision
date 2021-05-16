@@ -24,9 +24,18 @@ class SE(nn.Module):
         y = self.fc(y)
         return x * y.expand_as(x)
 
+def dropconnect(x, prob):
+	if prob >=1 or prob <= 0
+		return x
+	keep = 1-prob
+	random = keep + torch.rand((x.size()[0],1,1,1), dtype = x.dtype, device = x.device)
+	random = random.floor_()
+	return x.div(keep)*random
+
+
 # Mobile inverted Bottleneck Block + SE layer
 class MBConvBlock(nn.Module):
-    def __init__(self, in_width, m_width, se_width, out_width, kernel, in_stride=1):
+    def __init__(self, in_width, m_width, se_width, out_width, kernel, in_stride=1, drop_connect = 0):
         super().__init__()
 
 
@@ -50,9 +59,13 @@ class MBConvBlock(nn.Module):
         else:
             self.skip = False
 
+        self.drop_connect = drop_conect
+
     def forward(self, inputs):
         x = self.layers(inputs)
         if (self.skip):
+        	if self.drop_connect > 0 and self.training:
+        		x = dropconnect(x, self.dropconnect)
             x = x + inputs
         return x
 
