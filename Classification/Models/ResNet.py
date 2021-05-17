@@ -51,15 +51,17 @@ class ResidualBlock(nn.Module):
         if in_stride != 1:
             if projection == 'B':
                 layers.append(nn.AvgPool2d(2))
-            elif projection == 'C':
+            if projection == 'C':
                 layers.append(nn.Conv2d(input_channels,output_channels,1, padding = 0, groups = input_groups, stride = in_stride, bias = False))
                 if not preact:
                     layers.append(nn.BatchNorm2d(output_channels))
-            else projection == 'D':
+            elif projection == 'D':
                 layers.append(nn.AvgPool2d(2))
                 layers.append(nn.Conv2d(input_channels,output_channels,1, padding = 0, groups = input_groups, stride = in_stride, bias = False))
                 if not preact:
                     layers.append(nn.BatchNorm2d(output_channels))
+            else:
+                layers.append(nn.AvgPool2d(2)) # defaults to projection 'B'
 
         self.skip = nn.Sequential(*layers)
                     
