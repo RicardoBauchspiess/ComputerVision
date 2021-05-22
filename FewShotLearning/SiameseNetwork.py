@@ -10,7 +10,7 @@ from Classification.Models.ResNet import *
 
 class Linearizer(nn.Module):
 	def __init__(self,input_features, output_features):
-		super(Linearizer, self).__init()
+		super(Linearizer, self).__init__()
 		self.fc = nn.Linear(input_features, output_features)
 	def forward(self, x):
 		x = x.view(x.size()[0],-1)
@@ -20,7 +20,7 @@ class Linearizer(nn.Module):
 
 class SiameseNetwork(nn.Module):
 	def __init__(self, feature_extractor = None, exit_features = 0, compare_features = 4096):
-		super(SiameseNetwork, self).__init()
+		super(SiameseNetwork, self).__init__()
 
 		# Enables loading custom networks for the feature_extractor layer
 		if feature_extractor is not None and exit_features > 0:

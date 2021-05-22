@@ -13,3 +13,6 @@ Classification/CustomData/images/classes/violin/images/
 
 
 ObjectDetection/VOCDetectionData/
+
+FewShotLearning/data/
+FewShotLearning/val_data/
