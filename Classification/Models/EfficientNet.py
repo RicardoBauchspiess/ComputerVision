@@ -21,7 +21,7 @@ class SE(nn.Module):
         )
 
     def forward(self, x):
-        y = self.fc(y)
+        y = self.fc(x)
         return x * y.expand_as(x)
 
 def dropconnect(x, prob):
@@ -36,7 +36,7 @@ def dropconnect(x, prob):
 # Mobile inverted Bottleneck Block + SE layer
 class MBConvBlock(nn.Module):
     def __init__(self, in_width, m_width, se_width, out_width, kernel, in_stride=1, drop_connect = 0):
-        super().__init__()
+        super(MBConvBlock, self).__init__()
 
 
         layers = []
@@ -48,7 +48,7 @@ class MBConvBlock(nn.Module):
         layers.append(nn.BatchNorm2d(m_width))
         layers.append(MemoryEfficientSwish())
         if (se_width>0):
-            layers.append(SE(m_width, se_width, out_groups))
+            layers.append(SE(m_width, se_width))
         layers.append(nn.Conv2d(m_width, out_width, 1, stride=1, padding=0, bias=False))
         layers.append(nn.BatchNorm2d(out_width))
 
@@ -112,7 +112,7 @@ class EfficientNet(nn.Module):
         		SEwidth = int(current_width*SEratio)
         		MBwidth = int(current_width*mbratio)
         	
-        		layers.append(current_width, MBwidth, SEwidth, width, kernel, in_stride = stride, drop_connect = drop_connect)
+        		layers.append(MBConvBlock( current_width, MBwidth, SEwidth, width, kernel, in_stride = stride, drop_connect = drop_connect) )
         		current_width = width
         		mbratio = MBratio
         	

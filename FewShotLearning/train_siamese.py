@@ -13,19 +13,19 @@ from utils import *
 
 
 use_cuda = torch.cuda.is_available()
-use_cuda = False
+#use_cuda = False
 
 if (use_cuda):
 	print('cuda is available, training on GPU')
 else:
 	print('cuda isn\'t available, training on CPU')
 
-batch_size = 32
+batch_size = 16
 num_workers = 1
-num_epochs = 10
+num_epochs = 200
 
 epoch = 0
-experiment_number = 1
+experiment_number = 2
 
 path = 'models/id'+ str(experiment_number)
 model_file = path+'/model_'+str(experiment_number)+'_check.pt'
@@ -34,7 +34,7 @@ epoch_file = path+'/epoch.txt'
 
 if epoch == 0:
     path0 = os.getcwd()
-    full_path = path0+path
+    full_path = path0+'/'+path
     try:
         os.mkdir(full_path)
     except OSError:
@@ -53,12 +53,14 @@ val_loader = torch.utils.data.DataLoader(val_data, shuffle = False, batch_size=b
 
 # Model
 model = SiameseNetwork()
+
+torch.cuda.empty_cache()
 if use_cuda:
 	model = model.cuda()
 
 
 # criterion and optimizer
-criterion = ContrastiveLoss()
+criterion = ContrastiveLoss()#nn.BCELoss() #ContrastiveLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay = 0.0005)
 
 
@@ -77,7 +79,7 @@ while(epoch < num_epochs):
 	epoch += 1
 
 	train_loss = 0.0
-	valid_loss = 0.0
+	val_loss = 0.0
 	train_correct = 0.0
 	train_total = 0.0
 	val_correct = 0.0
@@ -86,17 +88,20 @@ while(epoch < num_epochs):
 	# TRAINING
 	model.train()
 	it = 0
-	print('total iters: ', len(train_loader))
+	torch.cuda.empty_cache()
+	#print('total iters: ', len(train_loader))
 	for img1, classes in train_loader:
-
-		it += 1
-		print(it)
+		
+		if epoch == 1:
+			it += 1
+			print(it)
 
 		optimizer.zero_grad()
 
 		# random list whether pair of images should match or not classes
-		target = torch.from_numpy(np.random.randint(2, size=classes.size()[0]))
+		target = torch.tensor([float(v) for v in (np.random.randint(2, size=classes.size()[0]))] )
 
+		#print(target)
 		# gets second set of images to compare
 		img2 = train_data.getimages(classes,target)
 
@@ -104,6 +109,8 @@ while(epoch < num_epochs):
 			img1, img2, target = img1.cuda(), img2.cuda(), target.cuda()
 
 		output = model(img1, img2)
+		output = output.view(-1)
+		#print(output)
 
 		# update weights
 		loss = criterion(output, target)
@@ -112,41 +119,46 @@ while(epoch < num_epochs):
 
 		# update error rate
 		output = torch.clip(torch.round(output), min=0, max=1)
-		err = torch.sum(torch.abs(output-target))
+		#print(output)
+
 		train_total += len(target)
-		train_correct += (len(target)-err)
+		train_correct += torch.sum(torch.abs(output-target)).cpu().detach().numpy()
 		train_loss += loss.item()*classes.size(0)
+		torch.cuda.empty_cache()
+		#break
 
 	print('epoch ',epoch)
-	print('Training: loss: ',train_loss,' error rate: ',(train_correct/train_loss)*100,' (', train_correct,'/',train_total,')' )
+	print('Training: loss: ',train_loss,' error rate: ',(train_correct/train_total)*100,' (', train_correct,'/',train_total,')' )
 
 	# VALIDATION
 	model.eval()
-	for img1, classes in val_loader:
+	with torch.no_grad():
+		for img1, classes in val_loader:
+			torch.cuda.empty_cache()
 
-		optimizer.zero_grad()
+			# random list whether pair of images should match or not classes
+			target = torch.tensor([float(v) for v in (np.random.randint(2, size=classes.size()[0]))] )
 
-		# random list whether pair of images should match or not classes
-		target = torch.from_numpy(np.random.randint(2, size=classes.size()[0]))
+			# gets second set of images to compare
+			img2 = val_data.getimages(classes,target)
 
-		# gets second set of images to compare
-		img2 = val_data.getimages(classes,target)
+			if use_cuda:
+				img1, img2, target = img1.cuda(), img2.cuda(), target.cuda()
 
-		if use_cuda:
-			img1, img2, target = img1.cuda(), img2.cuda(), target.cuda()
+			output = model(img1, img2)
+			output = output.view(-1)
 
-		output = model(img1, img2)
+			loss = criterion(output, target)
 
-		loss = criterion(output, target)
+			# update error rate
+			output = torch.clip(torch.round(output), min=0, max=1)
+			#err = torch.sum(torch.abs(output-target)).cpu().detach().numpy()
+			val_total += len(target)
+			val_correct += torch.sum(torch.abs(output-target)).cpu().detach().numpy()
+			val_loss += loss.item()*classes.size(0)
+			#break
 
-		# update error rate
-		output = torch.clip(torch.round(output), min=0, max=1)
-		err = torch.sum(torch.abs(output-target))
-		val_total += len(target)
-		val_correct += (len(target)-err)
-		val_loss += loss.item()*classes.size(0)
-
-	print('Validation: loss: ',train_loss,' error rate: ',(train_correct/train_loss)*100,' (', train_correct,'/',train_total,')' )
+	print('Validation: loss: ',val_loss,' error rate: ',(val_correct/val_total)*100,' (', val_correct,'/',val_total,')' )
 
 	torch.save(model.state_dict(), model_file)
 	torch.save(optimizer.state_dict(), optimizer_file)
